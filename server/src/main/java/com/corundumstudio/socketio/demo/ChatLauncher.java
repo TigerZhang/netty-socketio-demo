@@ -2,6 +2,8 @@ package com.corundumstudio.socketio.demo;
 
 import com.corundumstudio.socketio.listener.*;
 import com.corundumstudio.socketio.*;
+import org.json.JSONObject;
+import org.json.JSONString;
 
 import java.util.logging.Logger;
 
@@ -12,7 +14,7 @@ public class ChatLauncher {
     public static void main(String[] args) throws InterruptedException {
 
         Configuration config = new Configuration();
-        config.setHostname("localhost");
+        config.setHostname("0.0.0.0");
         config.setPort(9092);
 
 
@@ -23,6 +25,13 @@ public class ChatLauncher {
             public void onConnect(SocketIOClient client) {
                 LOGGER.info(String.format("%s, %s", client.getSessionId(), "connected"));
 
+                // TODO
+                // 1. create mqtt client
+                //   1.1 try to get reusable user info
+                //   1.2 reg a new user if necessary
+                //   1.3 connect to broker
+                // 2. add mqtt client to clientList
+
                 client.sendEvent("socketconnectack", "{ msg: 'socket.io connected' }");
             }
         });
@@ -31,6 +40,10 @@ public class ChatLauncher {
             @Override
             public void onDisconnect(SocketIOClient client) {
                 LOGGER.info(String.format("%s, %s", client.getSessionId(), "disconnected"));
+
+                // TODO
+                // 1. disconnect mqtt client
+                // 2. add the freed user info to reusable list
             }
         });
 
@@ -49,7 +62,10 @@ public class ChatLauncher {
             public void onData(SocketIOClient client, ConnectObject data, AckRequest ackRequest) throws Exception {
                 LOGGER.info(data.getAppkey());
 
-                client.sendEvent("connack", "{success: true}");
+                JSONObject ack = new JSONObject();
+                ack.put("success", true);
+
+                client.sendEvent("connack", "{sucess: true}");
             }
         });
 
@@ -72,6 +88,15 @@ public class ChatLauncher {
             }
         });
 
+        server.addEventListener("set_alias", SetAliasObject.class, new DataListener<SetAliasObject>() {
+            @Override
+            public void onData(SocketIOClient client, SetAliasObject data, AckRequest ackSender) throws Exception {
+                LOGGER.info(String.format("set_alias %s", data.getAlias()));
+
+                client.sendEvent("set_alias_ack", "{success: true}");
+            }
+        });
+
         server.addEventListener("publish_to_alias", PublishToAliasObject.class, new DataListener<PublishToAliasObject>() {
             @Override
             public void onData(SocketIOClient client, PublishToAliasObject data, AckRequest ackSender) throws Exception {
@@ -87,9 +112,12 @@ public class ChatLauncher {
                 LOGGER.info(String.format("publish_to_alias_batch"));
                 for (int i = 0; i < data.getAlias_list().length; i++) {
                     LOGGER.info(String.format("item %s, %s", data.getAlias_list()[i].getA(), data.getAlias_list()[i].getI()));
+
+                    client.sendEvent("puback", "{success: true, \"messageId\": msgId.toString()}");
                 }
             }
         });
+
         server.start();
 
         Thread.sleep(Integer.MAX_VALUE);

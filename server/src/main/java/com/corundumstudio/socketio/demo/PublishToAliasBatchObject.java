@@ -3,6 +3,10 @@ package com.corundumstudio.socketio.demo;
 import java.util.List;
 
 public class PublishToAliasBatchObject {
+    public PublishToAliasBatchObject() {
+
+    }
+
     public PublishToAliasBatchObject(PublishToAliasBatchItem[] alias_list, String msg) {
         this.alias_list = alias_list;
         this.msg = msg;
